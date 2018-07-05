@@ -117,10 +117,10 @@ namespace Xmaxplatform { namespace Chain {
    {
 	   int64_t duration = current_execution_time();
 
-      if (duration > checktime_limit) {
+      /*if (duration > checktime_limit) {
          wlog("checktime called ${d}", ("d", duration));
          throw checktime_exceeded();
-      }
+      }*/
    }
 
 

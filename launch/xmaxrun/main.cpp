@@ -20,6 +20,10 @@
 #include <contractutil_plugin.hpp>
 #include <mongodb_plugin.hpp>
 
+#ifdef USE_V8
+#include <jsvm_xmax.h>
+#endif
+
 using namespace Baseapp;
 
 namespace fc {
@@ -53,20 +57,35 @@ int main(int argc, char** argv)
 
        regist_plugins();
 
-       if(!app().init<Xmaxplatform::blockchain_plugin>(argc, argv))
-           return -1;
-       initialize_logging();
-       ilog("xmaxrun init success!");
-      app().startup();
-      app().exec();
-   //} catch (const fc::exception& e) {
-   //   elog("${e}", ("e",e.to_detail_string()));
-   //} catch (const boost::exception& e) {
-   //   elog("${e}", ("e",boost::diagnostic_information(e)));
-   //} catch (const std::exception& e) {
-   //   elog("${e}", ("e",e.what()));
-   //} catch (...) {
-   //   elog("unknown exception");
-   //}
+#ifdef USE_V8
+	   Xmaxplatform::Chain::jsvm_xmax& jsvmInstance = Xmaxplatform::Chain::jsvm_xmax::get();
+
+	   jsvmInstance.V8EnvInit();
+	   {
+		   v8::Isolate* pIsolate = jsvmInstance.V8GetIsolate();
+		   v8::HandleScope handle_scope(pIsolate);
+		   v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(pIsolate);
+		   jsvmInstance.V8SetupGlobalObjTemplate(&global);
+#endif
+
+		   if (!app().init<Xmaxplatform::blockchain_plugin>(argc, argv))
+			   return -1;
+		   initialize_logging();
+		   ilog("xmaxrun init success!");
+		   app().startup();
+		   app().exec();
+		   //} catch (const fc::exception& e) {
+		   //   elog("${e}", ("e",e.to_detail_string()));
+		   //} catch (const boost::exception& e) {
+		   //   elog("${e}", ("e",boost::diagnostic_information(e)));
+		   //} catch (const std::exception& e) {
+		   //   elog("${e}", ("e",e.what()));
+		   //} catch (...) {
+		   //   elog("unknown exception");
+		   //}
+#ifdef USE_V8
+	   }
+	   jsvmInstance.V8EnvDiscard();
+#endif
    return 0;
 }

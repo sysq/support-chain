@@ -981,11 +981,11 @@ namespace Xmaxplatform { namespace Chain {
 		{
 			try {
 				const blockchain_configuration& chain_configuration = get_static_config().setup;
-				XMAX_ASSERT((fc::time_point::now() - start_time).count() < chain_configuration.max_trx_runtime, checktime_exceeded,
-					"Transaction exceeded maximum total transaction time of ${limit}ms", ("limit", chain_configuration.max_trx_runtime / 1000));
+			//	XMAX_ASSERT((fc::time_point::now() - start_time).count() < chain_configuration.max_trx_runtime, checktime_exceeded,
+			//		"Transaction exceeded maximum total transaction time of ${limit}ms", ("limit", chain_configuration.max_trx_runtime / 1000));
 
-				XMAX_ASSERT(depth < chain_configuration.in_depth_limit, tx_resource_exhausted,
-					"Transaction exceeded maximum inline recursion depth of ${limit}", ("limit", chain_configuration.in_depth_limit));
+			//	XMAX_ASSERT(depth < chain_configuration.in_depth_limit, tx_resource_exhausted,
+			//		"Transaction exceeded maximum inline recursion depth of ${limit}", ("limit", chain_configuration.in_depth_limit));
 
 				typename T::processed ptrx(trx);
 				ptrx.output.resize(trx.messages.size());
