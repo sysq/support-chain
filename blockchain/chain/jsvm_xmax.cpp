@@ -23,51 +23,17 @@
 
 #include "jsvm_util.h"
 #include "jsvm_objbind/Int64Bind.h"
-/*
-	void exportFoo(const FunctionCallbackInfo<v8::Value>& args) {
-	
-		for (int i = 0; i < args.Length(); i++) {
-		v8::HandleScope handle_scope(args.GetIsolate());
 
-		Handle<v8::Value> js_data_value = args[i];
-	
-		bool bIsObject = js_data_value->IsObject();
-		if (bIsObject)
-		{
-			Handle<Object> js_data_object = Handle<Object>::Cast(js_data_value);
-
-			Handle<String> js_func_name = String::NewFromUtf8(
-				Xmaxplatform::Chain::jsvm_xmax::get().current_state->current_isolate,
-				"toOctetString",
-				NewStringType::kNormal).ToLocalChecked();
-
-			Handle<String> js_param_name = String::NewFromUtf8(
-				Xmaxplatform::Chain::jsvm_xmax::get().current_state->current_isolate,
-				" ",
-				NewStringType::kNormal).ToLocalChecked();
-
-			Handle<Value>  js_func_ref = js_data_object->Get(js_func_name);
-			Handle<Function> js_func = Handle<Function>::Cast(js_func_ref);
- 
- 			Handle<v8::Value> args[1];
- 			args[0] = js_param_name;
- 
- 			Handle<Value> result = js_func->Call(js_data_object, 1, args);
- 
- 			String::Utf8Value utf8(result);
- 			printf("%s\n", *utf8);
-		
-		}
-	}
-}
-*/
 
 using namespace v8;
 namespace Xmaxplatform {
 
 	namespace Chain {
 
-		jsvm_xmax::jsvm_xmax() {
+		jsvm_xmax::jsvm_xmax() 
+		:m_ContextMaxScriptCount(9999)
+		,m_CurrentScriptCount(0)
+		{
 
 		}
 
@@ -160,6 +126,10 @@ namespace Xmaxplatform {
 
 		void jsvm_xmax::V8EnvDiscard()
 		{
+			if (!m_CurrentContext.IsEmpty())
+			{
+				m_CurrentContext.Get(m_pIsolate)->Exit();
+			}
 			m_pIsolate->Dispose();
 			v8::V8::Dispose();
 			v8::V8::ShutdownPlatform();
@@ -223,18 +193,37 @@ namespace Xmaxplatform {
  				state.code_version = fc::sha256();
 				state.table_key_types.clear();
 
+				if (m_CurrentScriptCount>m_ContextMaxScriptCount)
+				{
+					m_CurrentScriptCount=0;
+					if (!m_CurrentContext.IsEmpty())
+					{
+						ExitJsContext(m_pIsolate, m_CurrentContext);
+					//	m_CurrentContext = EnterJsContext(m_pIsolate, *m_pGlobalObjectTemplate);
+					}
+
+					message_context_xmax& msg_contxt = *jsvm_xmax::get().current_message_context;
+					const auto& recipient = msg_contxt.db.get<account_object, by_name>(msg_contxt.code);
+					CompileJsCode(m_pIsolate, m_CurrentContext.Get(m_pIsolate), (char*)recipient.code.data());
+
+				}
+				else
+				{
+					if (m_CurrentContext.IsEmpty())
+					{
+						m_CurrentContext = EnterJsContext(m_pIsolate, *m_pGlobalObjectTemplate);
+					}
+
+					message_context_xmax& msg_contxt = *jsvm_xmax::get().current_message_context;
+					const auto& recipient = msg_contxt.db.get<account_object, by_name>(msg_contxt.code);
+
+					CompileJsCode(m_pIsolate, m_CurrentContext.Get(m_pIsolate), (char*)recipient.code.data());
+					m_CurrentScriptCount++;
+				}
+				
 				try
 				{
 					const auto init_time = fc::time_point::now();
-					if (state.current_isolate == nullptr)
-					{
-						Isolate::CreateParams create_params;
-						create_params.array_buffer_allocator =
-							v8::ArrayBuffer::Allocator::NewDefaultAllocator();
-						Isolate* isolate = Isolate::New(create_params);
-						state.current_isolate = isolate;
-						state.current_isolate_scope = new Isolate::Scope(isolate);
-					}
 
 					//init abi
 					Basetypes::abi abi;

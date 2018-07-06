@@ -91,11 +91,13 @@ namespace Xmaxplatform {
 			v8::Isolate* m_pIsolate;
 			//v8::Local<v8::HandleScope>* m_pGlobalScope;
 			v8::Local<v8::ObjectTemplate>* m_pGlobalObjectTemplate;
+			v8::Persistent<v8::Context, v8::CopyablePersistentTraits<v8::Context>> m_CurrentContext;
 
 			v8::Isolate::CreateParams m_CreateParams;
 			v8::Platform* m_pPlatform;
 
-
+			int m_ContextMaxScriptCount;
+			int m_CurrentScriptCount;
 
 			jsvm_xmax();
 		};

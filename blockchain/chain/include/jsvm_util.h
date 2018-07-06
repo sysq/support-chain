@@ -14,6 +14,10 @@ namespace Xmaxplatform {
 		
 		void EnterJsContext(v8::Isolate* pIsolate,v8::Local<v8::ObjectTemplate>& global,DoWorkInJsCtx dowork);
 
+		v8::Persistent<v8::Context, v8::CopyablePersistentTraits<v8::Context>> EnterJsContext(v8::Isolate* pIsolate, v8::Local<v8::ObjectTemplate>& global);
+
+		void ExitJsContext(v8::Isolate* pIsolate, v8::Persistent<v8::Context, v8::CopyablePersistentTraits<v8::Context>>& context);
+
 		void BindJsFoos(v8::Isolate* pIsolate,const v8::Local<v8::ObjectTemplate>& fooGlobal, const JsFooBindMap& foosToBind);
 
 		void CompileJsCode(v8::Isolate* pIsolate, const v8::Local<v8::Context>& context,char* jsCode);

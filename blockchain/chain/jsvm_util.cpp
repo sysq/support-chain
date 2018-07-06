@@ -18,7 +18,23 @@ namespace Xmaxplatform {
 		}
 
 
-		void BindJsFoos(Isolate* pIsolate,const Local<ObjectTemplate>& fooGlobal,const std::map<std::string, Local<FunctionTemplate>>& foosToBind)
+		Persistent<Context, CopyablePersistentTraits<Context>> EnterJsContext(v8::Isolate* pIsolate, v8::Local<v8::ObjectTemplate>& global)
+		{
+			Handle<Context> context = Context::New(pIsolate, NULL, global);
+			//Persistent<Context> ret
+			context->Enter();
+			Persistent<Context, CopyablePersistentTraits<Context>> ret(pIsolate, context);
+			return ret;
+			//return ret;
+		}
+
+		void ExitJsContext(v8::Isolate* pIsolate, v8::Persistent<v8::Context, v8::CopyablePersistentTraits<v8::Context>>& context)
+		{
+			Handle<Context> localContext = context.Get(pIsolate);
+			localContext->Exit();
+		}
+
+		void BindJsFoos(Isolate* pIsolate, const Local<ObjectTemplate>& fooGlobal, const std::map<std::string, Local<FunctionTemplate>>& foosToBind)
 		{
 			for (const std::pair<std::string, Local<FunctionTemplate> >& foobind : foosToBind)
 			{
