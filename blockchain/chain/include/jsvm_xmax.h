@@ -6,7 +6,7 @@
 #include <libplatform/libplatform.h>
 #include <v8.h>
 
-
+#include "jsvm_util.h"
 
 namespace Xmaxplatform {
 	namespace Chain {
@@ -21,16 +21,10 @@ namespace Xmaxplatform {
 			};
 			typedef map<name, key_type> TableMap;
 			struct ModuleState {
-				
-
-				v8::Local<v8::Script>			 current_script;
-				v8::Isolate*                 current_isolate = nullptr;
-				v8::Local<v8::Context>           current_context;
-
-				v8::Isolate::Scope*          current_isolate_scope;
-				v8::HandleScope*             current_handle_scope;
-				v8::Context::Scope*			 current_context_scope;
-
+				//one contract one context map.
+				v8::Local<v8::Script>			 current_script;		
+				PersistentCpyableContext           current_context;
+			
 				fc::sha256               code_version;
 				TableMap                 table_key_types;
 				bool                     tables_fixed = false;
@@ -91,13 +85,13 @@ namespace Xmaxplatform {
 			v8::Isolate* m_pIsolate;
 			//v8::Local<v8::HandleScope>* m_pGlobalScope;
 			v8::Local<v8::ObjectTemplate>* m_pGlobalObjectTemplate;
-			v8::Persistent<v8::Context, v8::CopyablePersistentTraits<v8::Context>> m_CurrentContext;
+		//	PersistentCpyableContext m_CurrentContext;
 
 			v8::Isolate::CreateParams m_CreateParams;
 			v8::Platform* m_pPlatform;
 
-			int m_ContextMaxScriptCount;
-			int m_CurrentScriptCount;
+		//	int m_ContextMaxScriptCount;
+		//	int m_CurrentScriptCount;
 
 			jsvm_xmax();
 		};

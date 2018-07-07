@@ -21,7 +21,7 @@
 #include <fc/int128.hpp>
 #endif
 
-#include "jsvm_util.h"
+
 #include "jsvm_objbind/Int64Bind.h"
 
 
@@ -31,8 +31,6 @@ namespace Xmaxplatform {
 	namespace Chain {
 
 		jsvm_xmax::jsvm_xmax() 
-		:m_ContextMaxScriptCount(9999)
-		,m_CurrentScriptCount(0)
 		{
 
 		}
@@ -118,7 +116,6 @@ namespace Xmaxplatform {
 			V8::InitializePlatform(m_pPlatform);
 			V8::Initialize();
 
-			
 			m_CreateParams.array_buffer_allocator = v8::ArrayBuffer::Allocator::NewDefaultAllocator();
 			m_pIsolate = v8::Isolate::New(m_CreateParams);
 		}
@@ -126,9 +123,9 @@ namespace Xmaxplatform {
 
 		void jsvm_xmax::V8EnvDiscard()
 		{
-			if (!m_CurrentContext.IsEmpty())
+			if (current_state!=NULL&& !current_state->current_context.IsEmpty())
 			{
-				m_CurrentContext.Get(m_pIsolate)->Exit();
+				current_state->current_context.Get(m_pIsolate)->Exit();
 			}
 			m_pIsolate->Dispose();
 			v8::V8::Dispose();
@@ -139,40 +136,41 @@ namespace Xmaxplatform {
 
 		void  jsvm_xmax::vm_apply(char* code) {
 		
-			Handle<String> js_func_name = String::NewFromUtf8(current_state->current_isolate, "init", NewStringType::kNormal).ToLocalChecked();
-			Handle<v8::Value>  js_func_val = current_state->current_context->Global()->Get(js_func_name);
-			if (!js_func_val->IsFunction())
-			{
-				std::cerr << "Can't find js funcion init()" << std::endl;
-			}
-			Handle<Function> js_func = Handle<Function>::Cast(js_func_val);
-
-			Handle<v8::Value> hResult = js_func->Call(current_state->current_context->Global(), 0, nullptr);
+			Local<Context> context = current_state->current_context.Get(m_pIsolate);
+			message_context_xmax & validate_context = *jsvm_xmax::get().current_validate_context;
+			Handle<v8::Value> params[2];
+			params[0] = I64Cpp2JS(m_pIsolate, context, uint64_t(validate_context.msg.code));
+			params[1] = I64Cpp2JS(m_pIsolate, context, uint64_t(validate_context.msg.type));
+			CallJsFoo(m_pIsolate, context, "apply", 0, NULL);
 		
 		}
 
-		void vm_init( const Local<ObjectTemplate>& global, const Local<Context>& context, const Context::Scope& ctxScope)
-		{
-			Isolate* isolate = jsvm_xmax::get().current_state->current_isolate;
-
-			message_context_xmax& msg_contxt = *jsvm_xmax::get().current_message_context;
-			const auto& recipient = msg_contxt.db.get<account_object, by_name>(msg_contxt.code);
-
-			CompileJsCode(isolate, context, (char*)recipient.code.data());
-			
-			message_context_xmax & validate_context = *jsvm_xmax::get().current_validate_context;
- 			Handle<v8::Value> params[2];
- 			params[0] = I64Cpp2JS(isolate, context, uint64_t(validate_context.msg.code));
- 			params[1] = I64Cpp2JS(isolate, context, uint64_t(validate_context.msg.type));
-			CallJsFoo(isolate, context,"init", 0, NULL);
-		}
+// 		void vm_init( const Local<ObjectTemplate>& global, const Local<Context>& context, const Context::Scope& ctxScope)
+// 		{
+// 			Isolate* isolate = jsvm_xmax::get().V8GetIsolate();
+// 
+// 			message_context_xmax& msg_contxt = *jsvm_xmax::get().current_message_context;
+// 			const auto& recipient = msg_contxt.db.get<account_object, by_name>(msg_contxt.code);
+// 
+// 			CompileJsCode(isolate, context, (char*)recipient.code.data());
+// 			
+// 			message_context_xmax & validate_context = *jsvm_xmax::get().current_validate_context;
+//  			Handle<v8::Value> params[2];
+//  			params[0] = I64Cpp2JS(isolate, context, uint64_t(validate_context.msg.code));
+//  			params[1] = I64Cpp2JS(isolate, context, uint64_t(validate_context.msg.type));
+// 			CallJsFoo(isolate, context,"init", 0, NULL);
+// 		}
 
 		void  jsvm_xmax::vm_onInit(char* code)
 		{
 			try {
-				namespace  ph = std::placeholders;
 
-				EnterJsContext(m_pIsolate,*m_pGlobalObjectTemplate, std::bind(&vm_init, ph::_1, ph::_2, ph::_3));
+				Local<Context> context = current_state->current_context.Get(m_pIsolate);
+				message_context_xmax & validate_context = *jsvm_xmax::get().current_validate_context;
+				Handle<v8::Value> params[2];
+				params[0] = I64Cpp2JS(m_pIsolate, context, uint64_t(validate_context.msg.code));
+				params[1] = I64Cpp2JS(m_pIsolate, context, uint64_t(validate_context.msg.type));
+				CallJsFoo(m_pIsolate, context, "init", 0, NULL);
 
 			}
 			catch (const Runtime::Exception& e) {
@@ -186,40 +184,30 @@ namespace Xmaxplatform {
 		{
 			const auto& recipient = db.get<account_object, by_name>(name);
 			
-
 			auto& state = instances[name];
+
+
 			if (state.code_version != recipient.code_version) {
  				
  				state.code_version = fc::sha256();
 				state.table_key_types.clear();
 
-				if (m_CurrentScriptCount>m_ContextMaxScriptCount)
-				{
-					m_CurrentScriptCount=0;
-					if (!m_CurrentContext.IsEmpty())
-					{
-						ExitJsContext(m_pIsolate, m_CurrentContext);
-					//	m_CurrentContext = EnterJsContext(m_pIsolate, *m_pGlobalObjectTemplate);
-					}
+				if (!state.current_context.IsEmpty())
+					state.current_context.Reset();
 
-					message_context_xmax& msg_contxt = *jsvm_xmax::get().current_message_context;
-					const auto& recipient = msg_contxt.db.get<account_object, by_name>(msg_contxt.code);
-					CompileJsCode(m_pIsolate, m_CurrentContext.Get(m_pIsolate), (char*)recipient.code.data());
+				state.current_context = CreateJsContext(m_pIsolate, *m_pGlobalObjectTemplate);
 
-				}
-				else
-				{
-					if (m_CurrentContext.IsEmpty())
-					{
-						m_CurrentContext = EnterJsContext(m_pIsolate, *m_pGlobalObjectTemplate);
-					}
+				if (!current_state->current_context.IsEmpty())
+					ExitJsContext(m_pIsolate, current_state->current_context);
 
-					message_context_xmax& msg_contxt = *jsvm_xmax::get().current_message_context;
-					const auto& recipient = msg_contxt.db.get<account_object, by_name>(msg_contxt.code);
+				EnterJsContext(m_pIsolate, state.current_context);
+				
 
-					CompileJsCode(m_pIsolate, m_CurrentContext.Get(m_pIsolate), (char*)recipient.code.data());
-					m_CurrentScriptCount++;
-				}
+				message_context_xmax& msg_contxt = *jsvm_xmax::get().current_message_context;
+				const auto& recipient = msg_contxt.db.get<account_object, by_name>(msg_contxt.code);
+
+				state.current_script = CompileJsCode(m_pIsolate, state.current_context.Get(m_pIsolate), (char*)recipient.code.data());
+				current_state = &state;
 				
 				try
 				{
@@ -247,11 +235,18 @@ namespace Xmaxplatform {
 					std::cerr << exception.message << std::endl;
 					throw;
 				}
-
-				current_state = &state;
+				
 				table_key_types = &state.table_key_types;
 				tables_fixed = state.tables_fixed;
 				table_storage = 0;
+			}
+			else if(current_state!=&state)
+			{
+				if (!current_state->current_context.IsEmpty())
+					ExitJsContext(m_pIsolate, current_state->current_context);
+
+				EnterJsContext(m_pIsolate, state.current_context);
+				current_state = &state;		
 			}
 		}
 

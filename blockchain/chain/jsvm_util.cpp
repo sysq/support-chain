@@ -18,19 +18,22 @@ namespace Xmaxplatform {
 		}
 
 
-		Persistent<Context, CopyablePersistentTraits<Context>> EnterJsContext(v8::Isolate* pIsolate, v8::Local<v8::ObjectTemplate>& global)
+		PersistentCpyableContext CreateJsContext(v8::Isolate* pIsolate, v8::Local<v8::ObjectTemplate>& global)
 		{
-			Handle<Context> context = Context::New(pIsolate, NULL, global);
-			//Persistent<Context> ret
-			context->Enter();
-			Persistent<Context, CopyablePersistentTraits<Context>> ret(pIsolate, context);
+			Local<Context> context = Context::New(pIsolate, NULL, global);
+			PersistentCpyableContext ret(pIsolate, context);
 			return ret;
-			//return ret;
+		}
+
+		void EnterJsContext(v8::Isolate* pIsolate, v8::Persistent<v8::Context, v8::CopyablePersistentTraits<v8::Context>>& context)
+		{
+			Local<Context> localContext = context.Get(pIsolate);
+			localContext->Enter();
 		}
 
 		void ExitJsContext(v8::Isolate* pIsolate, v8::Persistent<v8::Context, v8::CopyablePersistentTraits<v8::Context>>& context)
 		{
-			Handle<Context> localContext = context.Get(pIsolate);
+			Local<Context> localContext = context.Get(pIsolate);
 			localContext->Exit();
 		}
 
@@ -44,7 +47,7 @@ namespace Xmaxplatform {
 			}
 		}
 
-		void CompileJsCode(Isolate* pIsolate,const Local<Context>& context, char* jsCode)
+		Local<Script> CompileJsCode(Isolate* pIsolate,const Local<Context>& context, char* jsCode)
 		{
 			Local<String> source =
 				String::NewFromUtf8(pIsolate, jsCode,
@@ -60,7 +63,7 @@ namespace Xmaxplatform {
 				std::cerr << "js compile failed" << std::endl;
 			}
 
-			script->Run();
+			return script;
 		}
 
 		v8::Handle<v8::Value> CallJsFoo(Isolate* pIsolate, const Local<Context>& context,const char* fooname, unsigned int argc,Handle<v8::Value>* params)
