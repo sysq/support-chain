@@ -32,12 +32,17 @@ namespace Xmaxplatform {
 
 			static jsvm_xmax& get();
 
-
+			void V8SetInstructionCallBack(const char* name,void* foo);
 			void V8SetupGlobalObjTemplate(v8::Local<v8::ObjectTemplate>* pGlobalTemp);
 			void V8EnvInit();
 			void V8EnvDiscard();
 			v8::Isolate* V8GetIsolate();
-		
+			
+			void StoreInstruction(int ins);
+			void CleanInstruction();
+
+			int GetExecutedInsCount();
+			std::list<int>& GetExecutedIns();
 
 			void init(message_context_xmax& c);
 			void apply(message_context_xmax& c, uint32_t execution_time, bool received_block);
@@ -83,15 +88,14 @@ namespace Xmaxplatform {
 			fc::time_point checktimeStart;
 
 			v8::Isolate* m_pIsolate;
-			//v8::Local<v8::HandleScope>* m_pGlobalScope;
 			v8::Local<v8::ObjectTemplate>* m_pGlobalObjectTemplate;
-		//	PersistentCpyableContext m_CurrentContext;
+
+			int m_instructionCount;
+			std::list<int> m_Intrunctions;
 
 			v8::Isolate::CreateParams m_CreateParams;
 			v8::Platform* m_pPlatform;
 
-		//	int m_ContextMaxScriptCount;
-		//	int m_CurrentScriptCount;
 
 			jsvm_xmax();
 		};
@@ -99,7 +103,15 @@ namespace Xmaxplatform {
 		{
 			return m_pIsolate;
 		}
+		inline int jsvm_xmax::GetExecutedInsCount()
+		{
+			return m_instructionCount;
+		}
 
+		inline std::list<int>& jsvm_xmax::GetExecutedIns()
+		{
+			return m_Intrunctions;
+		}
 
 	}
 }

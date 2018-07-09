@@ -287,7 +287,6 @@ namespace Xmaxplatform { namespace Chain {
 
       load( c.code, c.db );
 
-
       vm_onInit();
 
 

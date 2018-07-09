@@ -78,11 +78,23 @@ namespace Xmaxplatform {
 			return *jsvm;
 	  }
 
-#ifdef NDEBUG
+		#ifdef NDEBUG
 		const int CHECKTIME_LIMIT = 3000;
 #else
 		const int CHECKTIME_LIMIT = 36000;
 #endif
+
+		void jsvm_xmax::StoreInstruction(int ins)
+		{
+			m_instructionCount++;
+			m_Intrunctions.push_back(ins);
+		}
+
+		void jsvm_xmax::CleanInstruction()
+		{
+			m_instructionCount = 0;
+			m_Intrunctions.clear();
+		}
 
 		void jsvm_xmax::init(message_context_xmax& c)
 		{
@@ -99,7 +111,19 @@ namespace Xmaxplatform {
 
 			} FC_CAPTURE_AND_RETHROW()
 		}
+		
+		v8::Object* CallBackCheck(int args_length, v8::Object** args_object, v8::Isolate* isolate) {
+			void* arg1 = *(reinterpret_cast<v8::Object**>(reinterpret_cast<intptr_t>(args_object) - 1 * sizeof(int)));
 
+			int value = (int)arg1;
+			//ScriptMoudle::GetInstance().StoreInstrunction(value);
+			return args_object[0];
+		}
+
+		void jsvm_xmax::V8SetInstructionCallBack(const char* name, void* foo)
+		{
+			V8_AddIntrinsicFoo(name, foo, 2, 1);
+		}
 
 		void jsvm_xmax::V8SetupGlobalObjTemplate(v8::Local<v8::ObjectTemplate>* pGlobalTemp)
 		{
@@ -110,6 +134,7 @@ namespace Xmaxplatform {
 
 		void jsvm_xmax::V8EnvInit()
 		{
+			V8_AddIntrinsicFoo("callback", (void*)CallBackCheck, 2, 1);
 			V8::InitializeICUDefaultLocation("");
 			V8::InitializeExternalStartupData("");
 			m_pPlatform = platform::CreateDefaultPlatform();
@@ -144,22 +169,6 @@ namespace Xmaxplatform {
 			CallJsFoo(m_pIsolate, context, "apply", 0, NULL);
 		
 		}
-
-// 		void vm_init( const Local<ObjectTemplate>& global, const Local<Context>& context, const Context::Scope& ctxScope)
-// 		{
-// 			Isolate* isolate = jsvm_xmax::get().V8GetIsolate();
-// 
-// 			message_context_xmax& msg_contxt = *jsvm_xmax::get().current_message_context;
-// 			const auto& recipient = msg_contxt.db.get<account_object, by_name>(msg_contxt.code);
-// 
-// 			CompileJsCode(isolate, context, (char*)recipient.code.data());
-// 			
-// 			message_context_xmax & validate_context = *jsvm_xmax::get().current_validate_context;
-//  			Handle<v8::Value> params[2];
-//  			params[0] = I64Cpp2JS(isolate, context, uint64_t(validate_context.msg.code));
-//  			params[1] = I64Cpp2JS(isolate, context, uint64_t(validate_context.msg.type));
-// 			CallJsFoo(isolate, context,"init", 0, NULL);
-// 		}
 
 		void  jsvm_xmax::vm_onInit(char* code)
 		{

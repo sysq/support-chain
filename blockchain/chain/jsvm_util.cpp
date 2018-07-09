@@ -52,8 +52,9 @@ namespace Xmaxplatform {
 			Local<String> source =
 				String::NewFromUtf8(pIsolate, jsCode,
 					NewStringType::kNormal).ToLocalChecked();
+			V8_ParseWithPlugin();
 			MaybeLocal<Script> temp = Script::Compile(context, source);
-
+			V8_ParseWithOutPlugin();
 			if (temp.IsEmpty())
 			{
 				std::cerr << "js compile failed" << std::endl;
@@ -77,8 +78,10 @@ namespace Xmaxplatform {
 			}
 			else
 			{
+				V8_ParseWithPlugin();
 				Handle<Function> js_func = Handle<Function>::Cast(js_func_val);
 				Handle<v8::Value> hResult = js_func->Call(context->Global(), argc, params);
+				V8_ParseWithOutPlugin();
 				return hResult;
 			}
 		}
