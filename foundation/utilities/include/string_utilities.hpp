@@ -24,18 +24,13 @@ namespace xmax {
 		return 0;
 	}
 
-#if WIN32
 	static std::string&& name_to_string(uint64_t name)
-#else
-	static constexpr std::string&& name_to_string(uint64_t name)
-#endif
 	{
 		if (name == 0)
 			return "";
 
 		uint64_t tmp = name;
 		std::string resStr = "";
-
 		for (int i = 0; i < 12; ++i)
 		{
 			char symbol = (char)((tmp >> (64 - 5 * (i + 1))) & 0x1f);
